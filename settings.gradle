@@ -1,0 +1,2 @@
+include ':app', ':expandablecardview'
+rootProject.name='ExpandableCardView'
