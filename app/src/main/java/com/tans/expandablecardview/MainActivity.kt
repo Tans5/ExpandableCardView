@@ -10,7 +10,24 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        expand_bt.setOnClickListener {
+        var headerSizeAnimator: ViewSizeAnimator? = null
+        header_tv.post {
+            headerSizeAnimator = ViewSizeAnimator.Companion.Builder(
+                view = header_tv,
+                viewSize = ViewSizeAnimator.Companion.Size(header_tv.measuredWidth, header_tv.measuredHeight))
+                .build()
+        }
+
+        hide_or_show_header_bt.setOnClickListener {
+            val headerAnimator = headerSizeAnimator
+            if (headerAnimator?.state == ViewSizeAnimator.Companion.AnimatorState.Expand) {
+                headerAnimator.fold(ViewSizeAnimator.Companion.AnimatorType.Height)
+            } else if (headerAnimator?.state is ViewSizeAnimator.Companion.AnimatorState.Fold) {
+                headerAnimator.expand(ViewSizeAnimator.Companion.AnimatorType.Height)
+            }
+        }
+
+        expand_or_show_bt.setOnClickListener {
             val state = exd_view.currentState()
             if (state == ExpandableCardView.Companion.AnimatorState.Fold) {
                 exd_view.expand(animatorBuilder = ExpandableCardView.Companion.ExpandableCardViewAnimatorBuilder()) {  }
