@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- ExpandableCardView -->
+    <declare-styleable name="ExpandableCardView">
+        <attr name="fold_offset" format="dimension" />
+        <attr name="default_state" format="enum">
+            <enum name="fold" value="0" />
+            <enum name="expand" value="1" />
+        </attr>
+    </declare-styleable>
+
+</resources>

@@ -24,20 +24,53 @@ class ExpandableCardView : ViewGroup {
 
     constructor(context: Context) : super(context)
 
-    constructor(context: Context, attrs: AttributeSet) : super(context, attrs)
+    constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
+        initAttrs(attrs)
+    }
 
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int) : super(
         context,
         attrs,
         defStyleAttr
-    )
+    ) {
+        initAttrs(attrs)
+    }
 
     constructor(context: Context, attrs: AttributeSet, defStyleAttr: Int, defStyleRes: Int) : super(
         context,
         attrs,
         defStyleAttr,
         defStyleRes
-    )
+    ) {
+        initAttrs(attrs)
+    }
+
+    private fun initAttrs(attrs: AttributeSet) {
+        val typedArray = context.obtainStyledAttributes(attrs, R.styleable.ExpandableCardView)
+        println("Init attrs")
+        (0 until typedArray.indexCount).forEach { index ->
+            when (index) {
+                R.styleable.ExpandableCardView_fold_offset -> {
+                    foldOffset = typedArray.getDimension(index, 100f).toInt()
+                }
+                R.styleable.ExpandableCardView_default_state -> {
+                    animatorState = typedArray.getInt(index, 0).let {
+                        println("Index: $it")
+                        when (it) {
+                            0 -> {
+                                AnimatorState.Fold
+                            }
+                            1 -> {
+                                AnimatorState.Expand
+                            }
+                            else -> AnimatorState.Fold
+                        }
+                    }
+                }
+            }
+        }
+        typedArray.recycle()
+    }
 
     override fun onMeasure(parentWidthMeasureSpec: Int, parentHeightMeasureSpec: Int) {
         val childCount = childCount
