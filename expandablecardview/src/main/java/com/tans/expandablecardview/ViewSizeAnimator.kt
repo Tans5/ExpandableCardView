@@ -5,6 +5,8 @@ import android.animation.TypeEvaluator
 import android.animation.ValueAnimator
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
+import io.reactivex.Observable
+import io.reactivex.ObservableEmitter
 
 /**
  *
@@ -150,6 +152,42 @@ class ViewSizeAnimator private constructor(val view: View,
                     valueAnimator = animator)
             }
 
+        }
+
+        private class ObservableAnimatorStateCall(val call: ObservableAnimatorStateCall.(AnimatorState) -> Unit) {
+            var emitter: ObservableEmitter<AnimatorState>? = null
+        }
+
+        fun ViewSizeAnimator.expandWithObservable(type: AnimatorType): Observable<AnimatorState> {
+
+            val obsCall =  ObservableAnimatorStateCall(call = { state ->
+                emitter?.onNext(state)
+                if (state == AnimatorState.Expand) {
+                    emitter?.onComplete()
+                }
+            })
+
+            return Observable.create<AnimatorState> { emitter -> obsCall.emitter = emitter }
+                .doOnSubscribe {
+                    expand(type) { state ->
+                        println(state)
+                        obsCall.call(obsCall, state)
+                    }
+                }
+        }
+
+        fun ViewSizeAnimator.foldWithObservable(type: AnimatorType): Observable<AnimatorState> {
+            val obsCall =  ObservableAnimatorStateCall(call = { state ->
+                emitter?.onNext(state)
+                if (state is AnimatorState.Fold) {
+                    emitter?.onComplete()
+                }
+            })
+
+            return Observable.create<AnimatorState> { emitter -> obsCall.emitter = emitter }
+                .doOnSubscribe {
+                    fold(type) { state -> obsCall.call(obsCall, state) }
+                }
         }
     }
 }

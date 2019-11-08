@@ -3,6 +3,8 @@ package com.tans.expandablecardview
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import kotlinx.android.synthetic.main.activity_main.*
+import com.tans.expandablecardview.ViewSizeAnimator.Companion.expandWithObservable
+import com.tans.expandablecardview.ViewSizeAnimator.Companion.foldWithObservable
 
 class MainActivity : AppCompatActivity() {
 
@@ -19,7 +21,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         hide_or_show_header_bt.setOnClickListener {
-            headerSizeAnimator?.expandOrFold(type = ViewSizeAnimator.Companion.AnimatorType.Height)
+            headerSizeAnimator?.expandOrFold(ViewSizeAnimator.Companion.AnimatorType.Height)
         }
 
         expand_or_show_bt.setOnClickListener {
