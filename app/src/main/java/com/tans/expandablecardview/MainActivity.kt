@@ -19,12 +19,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         hide_or_show_header_bt.setOnClickListener {
-            val headerAnimator = headerSizeAnimator
-            if (headerAnimator?.state == ViewSizeAnimator.Companion.AnimatorState.Expand) {
-                headerAnimator.fold(ViewSizeAnimator.Companion.AnimatorType.Height)
-            } else if (headerAnimator?.state is ViewSizeAnimator.Companion.AnimatorState.Fold) {
-                headerAnimator.expand(ViewSizeAnimator.Companion.AnimatorType.Height)
-            }
+            headerSizeAnimator?.expandOrFold(type = ViewSizeAnimator.Companion.AnimatorType.Height)
         }
 
         expand_or_show_bt.setOnClickListener {

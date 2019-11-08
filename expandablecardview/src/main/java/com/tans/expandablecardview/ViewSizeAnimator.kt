@@ -13,9 +13,9 @@ import android.view.animation.AccelerateDecelerateInterpolator
  */
 class ViewSizeAnimator private constructor(val view: View,
                                            val size: Size,
-                                           private val valueAnimator: ValueAnimator){
+                                           private val valueAnimator: ValueAnimator) {
 
-    var state: AnimatorState = AnimatorState.Expand
+    private var state: AnimatorState = AnimatorState.Expand
 
     private val sizeTypeEvaluator =
         TypeEvaluator<Size> { fraction, startValue, endValue ->
@@ -25,138 +25,95 @@ class ViewSizeAnimator private constructor(val view: View,
 
     fun expand(type: AnimatorType, listener: (state: AnimatorState) -> Unit = {}): Boolean {
         return if (state is AnimatorState.Fold && type == (state as? AnimatorState.Fold)?.type) {
-            valueAnimator.removeAllUpdateListeners()
-            when (type) {
-                AnimatorType.Width -> {
-                    valueAnimator.setIntValues(0, size.width)
-                    valueAnimator.addUpdateListener {
-                        val width = it.animatedValue as Int
-                        view.layoutParams.width = width
-                        view.requestLayout()
-                        val state = if (width >= size.width) {
-                            AnimatorState.Expand
-                        } else {
-                            AnimatorState.RunningToExpand(type)
-                        }
-                        listener(state)
-                        this.state = state
-                    }
-                    valueAnimator.start()
-                }
-
-                AnimatorType.Height -> {
-
-                    valueAnimator.setIntValues(0, size.height)
-                    valueAnimator.addUpdateListener {
-                        val height = it.animatedValue as Int
-                        view.layoutParams.height = height
-                        view.requestLayout()
-                        val state = if (height >= size.height) {
-                            AnimatorState.Expand
-                        } else {
-                            AnimatorState.RunningToExpand(type)
-                        }
-                        listener(state)
-                        this.state = state
-                    }
-                    valueAnimator.start()
-
-                }
-
-                AnimatorType.WidthAndHeight -> {
-                    valueAnimator.setObjectValues(Size(0, 0), size)
-                    valueAnimator.setEvaluator(sizeTypeEvaluator)
-                    valueAnimator.addUpdateListener {
-                        val currentSize = it.animatedValue as Size
-                        view.layoutParams.height = currentSize.height
-                        view.layoutParams.width = currentSize.width
-                        view.requestLayout()
-                        val state = if (currentSize.height >= size.height &&
-                            currentSize.width >= size.width) {
-                            AnimatorState.Expand
-                        } else {
-                            AnimatorState.RunningToExpand(type)
-                        }
-                        listener(state)
-                        this.state = state
-                    }
-                    valueAnimator.start()
-                }
-            }
+            startViewSizeAnimator(isExpand = true, type = type ,listener = listener)
             true
         } else {
             false
         }
-
     }
 
     fun fold(type: AnimatorType, listener: (state: AnimatorState) -> Unit = {}): Boolean {
 
         return if (state == AnimatorState.Expand) {
-            valueAnimator.removeAllUpdateListeners()
-            when (type) {
-                AnimatorType.Width -> {
-                    valueAnimator.setIntValues(size.width, 0)
-                    valueAnimator.addUpdateListener {
-                        val width = it.animatedValue as Int
-                        view.layoutParams.width = width
-                        view.requestLayout()
-                        state = if (width <= 0) {
-                            AnimatorState.Fold(type)
-                        } else {
-                            AnimatorState.RunningToFold(type)
-                        }
-                    }
-                    valueAnimator.start()
-                }
-
-                AnimatorType.Height -> {
-
-                    valueAnimator.setIntValues(size.height, 0)
-                    valueAnimator.addUpdateListener {
-                        val height = it.animatedValue as Int
-                        view.layoutParams.height = height
-                        view.requestLayout()
-                        state = if (height <= 0) {
-                            AnimatorState.Fold(type)
-                        } else {
-                            AnimatorState.RunningToFold(type)
-                        }
-                    }
-                    valueAnimator.start()
-
-                }
-
-                AnimatorType.WidthAndHeight -> {
-                    valueAnimator.setObjectValues(size, Size(0, 0))
-                    valueAnimator.setEvaluator(sizeTypeEvaluator)
-                    valueAnimator.addUpdateListener {
-                        val currentSize = it.animatedValue as Size
-                        println("CurrentSize: $currentSize")
-                        view.layoutParams.height = currentSize.height
-                        view.layoutParams.width = currentSize.width
-                        view.requestLayout()
-                        val state = if (currentSize.height <= 0 &&
-                            currentSize.width <= 0) {
-                            AnimatorState.Fold(type)
-                        } else {
-                            AnimatorState.RunningToFold(type)
-                        }
-                        listener(state)
-                        this.state = state
-                    }
-                    valueAnimator.start()
-                }
-            }
+            startViewSizeAnimator(isExpand = false, type = type, listener = listener)
             true
         } else {
             false
         }
 
-
     }
 
+    fun expandOrFold(type: AnimatorType, listener: (state: AnimatorState) -> Unit = {}): Boolean {
+        return when {
+            state is AnimatorState.Fold && type == (state as? AnimatorState.Fold)?.type -> {
+                startViewSizeAnimator(isExpand = true, type = type ,listener = listener)
+                true
+            }
+            state == AnimatorState.Expand -> {
+                startViewSizeAnimator(isExpand = false, type = type, listener = listener)
+                true
+            }
+            else -> false
+        }
+    }
 
+    private fun startViewSizeAnimator(isExpand: Boolean,
+                                      type: AnimatorType,
+                                      listener: (state: AnimatorState) -> Unit = {}) {
+
+        valueAnimator.removeAllUpdateListeners()
+        val changeToSize = when (type) {
+            AnimatorType.Height -> size.copy(height = 0)
+            AnimatorType.Width -> size.copy(width = 0)
+            AnimatorType.WidthAndHeight -> Size(0, 0)
+        }
+        if (isExpand) {
+            valueAnimator.setObjectValues(changeToSize, size)
+        } else {
+            valueAnimator.setObjectValues(size, changeToSize)
+        }
+        valueAnimator.setEvaluator(sizeTypeEvaluator)
+        valueAnimator.addUpdateListener {
+            val currentSize = it.animatedValue as Size
+            view.layoutParams.height = currentSize.height
+            view.layoutParams.width = currentSize.width
+            view.requestLayout()
+            val state = when (type) {
+                AnimatorType.Width -> {
+                    if (currentSize.width <=0 ) {
+                        AnimatorState.Fold(type)
+                    } else if (currentSize.width >= size.width) {
+                        AnimatorState.Expand
+                    } else {
+                        if (isExpand) AnimatorState.RunningToExpand(type) else AnimatorState.RunningToFold(type)
+                    }
+                }
+                AnimatorType.Height -> {
+                    if (currentSize.height <=0 ) {
+                        AnimatorState.Fold(type)
+                    } else if (currentSize.height >= size.height) {
+                        AnimatorState.Expand
+                    } else {
+                        if (isExpand) AnimatorState.RunningToExpand(type) else AnimatorState.RunningToFold(type)
+                    }
+                }
+                AnimatorType.WidthAndHeight -> {
+                    if (currentSize.height <=0 && currentSize.width <= 0) {
+                        AnimatorState.Fold(type)
+                    } else if (currentSize.height >= size.height && currentSize.width >= size.width) {
+                        AnimatorState.Expand
+                    } else {
+                        if (isExpand) AnimatorState.RunningToExpand(type) else AnimatorState.RunningToFold(type)
+                    }
+                }
+            }
+            listener(state)
+            this.state = state
+        }
+        valueAnimator.start()
+    }
+
+    fun currentState(): AnimatorState = this.state
 
 
     companion object {
