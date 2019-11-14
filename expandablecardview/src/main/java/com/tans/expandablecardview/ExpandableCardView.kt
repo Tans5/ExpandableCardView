@@ -22,6 +22,8 @@ class ExpandableCardView : ViewGroup {
 
     private var animatorState: AnimatorState = AnimatorState.Fold
 
+    private var adapter: ExpandableAdapter<*, out ExpandableAdapter.ViewHolder>? = null
+
     constructor(context: Context) : super(context)
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
@@ -176,6 +178,28 @@ class ExpandableCardView : ViewGroup {
     }
 
     fun currentState(): AnimatorState = animatorState
+
+    override fun onAttachedToWindow() {
+        super.onAttachedToWindow()
+        adapter?.onAttachedToView(this)
+    }
+
+    override fun onDetachedFromWindow() {
+        super.onDetachedFromWindow()
+        adapter?.onDetachedToView(this)
+    }
+
+    fun setAdapter(adapter: ExpandableAdapter<*, out ExpandableAdapter.ViewHolder>) {
+        this.adapter = adapter
+        if (isAttachedToWindow) {
+            adapter.onAttachedToView(this)
+        }
+    }
+
+    fun newChildren(children: List<View>) {
+        removeAllViews()
+        children.withIndex().forEach { (index, child) -> addView(child, index) }
+    }
 
     companion object {
 
