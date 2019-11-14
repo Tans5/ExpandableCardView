@@ -47,7 +47,6 @@ class ExpandableCardView : ViewGroup {
 
     private fun initAttrs(attrs: AttributeSet) {
         val typedArray = context.obtainStyledAttributes(attrs, R.styleable.ExpandableCardView)
-        println("Init attrs")
         (0 until typedArray.indexCount).forEach { index ->
             when (index) {
                 R.styleable.ExpandableCardView_fold_offset -> {
@@ -55,7 +54,6 @@ class ExpandableCardView : ViewGroup {
                 }
                 R.styleable.ExpandableCardView_default_state -> {
                     animatorState = typedArray.getInt(index, 0).let {
-                        println("Index: $it")
                         when (it) {
                             0 -> {
                                 AnimatorState.Fold
@@ -101,7 +99,7 @@ class ExpandableCardView : ViewGroup {
 
             }
 
-            childrenHeight += childHeight
+            childrenHeight += if (childHeight < 0) 0 else childHeight
         }
 
         setMeasuredDimension(
@@ -120,38 +118,17 @@ class ExpandableCardView : ViewGroup {
             val childHeight = child.measuredHeight
             val lp: MarginLayoutParams = child.layoutParams as MarginLayoutParams
 
-            when (i) {
-                0 -> {
-                    usedHeight += lp.topMargin
-                    child.layout(
-                        lp.leftMargin,
-                        usedHeight,
-                        childWidth + lp.leftMargin,
-                        usedHeight + childHeight
-                    )
-                    val offset =
-                        ((lp.topMargin + lp.bottomMargin + child.measuredHeight) - ((child.measuredHeight - foldOffset + lp.bottomMargin + lp.topMargin) * animatorState.expandProgress).toInt())
-                    usedHeight += offset
-                }
+            val offset =
+                ((lp.topMargin + lp.bottomMargin + child.measuredHeight) - ((child.measuredHeight - foldOffset + lp.bottomMargin + lp.topMargin) * animatorState.expandProgress).toInt())
 
-                else -> {
+            child.layout(
+                lp.leftMargin,
+                usedHeight + lp.topMargin,
+                childWidth + lp.leftMargin,
+                usedHeight + childHeight + lp.topMargin
+            )
+            usedHeight += offset
 
-                    val lastChild = getChildAt(i - 1)
-                    val lastChildLp = lastChild.layoutParams as MarginLayoutParams
-
-                    val offset =
-                        ((lp.topMargin + lp.bottomMargin + child.measuredHeight) - ((lastChild.measuredHeight - foldOffset + lastChildLp.bottomMargin + lp.topMargin) * animatorState.expandProgress).toInt())
-
-                    child.layout(
-                        lp.leftMargin,
-                        usedHeight,
-                        childWidth + lp.leftMargin,
-                        usedHeight + childHeight
-                    )
-                    usedHeight += offset
-
-                }
-            }
         }
     }
 
