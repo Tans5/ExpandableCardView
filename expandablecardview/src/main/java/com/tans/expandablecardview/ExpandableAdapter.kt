@@ -12,7 +12,7 @@ import android.view.ViewGroup
 
 abstract class ExpandableAdapter<ItemData, VH: ExpandableAdapter.ViewHolder> {
 
-    private var view: ExpandableCardView? = null
+    protected var view: ExpandableCardView? = null
 
     private var dataList: List<ItemData> = emptyList()
 
@@ -31,14 +31,16 @@ abstract class ExpandableAdapter<ItemData, VH: ExpandableAdapter.ViewHolder> {
         view.newChildren(children)
     }
 
-    fun onAttachedToView(view: ExpandableCardView) {
+    open fun onAttachedToView(view: ExpandableCardView) {
         this.view = view
     }
 
-    fun onDetachedToView(view: ExpandableCardView) {
+    open fun onDetachedToView(view: ExpandableCardView) {
         val currentView = this.view
         if (currentView == view) this.view = null
     }
+
+    fun dataList() = this.dataList
 
     abstract class ViewHolder { abstract val view: View }
 

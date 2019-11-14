@@ -7,6 +7,7 @@ import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import io.reactivex.Observable
 import io.reactivex.ObservableEmitter
+import java.lang.RuntimeException
 
 /**
  *
@@ -154,40 +155,42 @@ class ViewSizeAnimator private constructor(val view: View,
 
         }
 
-        private class ObservableAnimatorStateCall(val call: ObservableAnimatorStateCall.(AnimatorState) -> Unit) {
-            var emitter: ObservableEmitter<AnimatorState>? = null
-        }
-
         fun ViewSizeAnimator.expandWithObservable(type: AnimatorType): Observable<AnimatorState> {
 
-            val obsCall =  ObservableAnimatorStateCall(call = { state ->
-                emitter?.onNext(state)
-                if (state == AnimatorState.Expand) {
-                    emitter?.onComplete()
-                }
-            })
+            val (rx, call) = callToObservable<AnimatorState> { it == AnimatorState.Expand }
 
-            return Observable.create<AnimatorState> { emitter -> obsCall.emitter = emitter }
-                .doOnSubscribe {
-                    expand(type) { state ->
-                        println(state)
-                        obsCall.call(obsCall, state)
-                    }
+            return rx.doOnSubscribe {
+                val result = expand(type, call)
+                if (!result) {
+                    throw RuntimeException("AnimatorState is error")
                 }
+            }
         }
 
         fun ViewSizeAnimator.foldWithObservable(type: AnimatorType): Observable<AnimatorState> {
-            val obsCall =  ObservableAnimatorStateCall(call = { state ->
-                emitter?.onNext(state)
-                if (state is AnimatorState.Fold) {
-                    emitter?.onComplete()
-                }
-            })
 
-            return Observable.create<AnimatorState> { emitter -> obsCall.emitter = emitter }
-                .doOnSubscribe {
-                    fold(type) { state -> obsCall.call(obsCall, state) }
+            val (rx, call) = callToObservable<AnimatorState> { it is AnimatorState.Fold }
+
+            return rx.doOnSubscribe {
+                val result = fold(type, call)
+                if (!result) {
+                    throw RuntimeException("AnimatorState is error")
                 }
+            }
+        }
+
+        fun ViewSizeAnimator.expandOrFoldWithObserable(type: AnimatorType): Observable<AnimatorState> {
+            return when (currentState()) {
+                AnimatorState.Expand -> {
+                    foldWithObservable(type)
+                }
+                is AnimatorState.Fold -> {
+                    expandWithObservable(type)
+                }
+                else -> {
+                    Observable.error<AnimatorState>(Throwable("Animator State isn't Expand or Fold"))
+                }
+            }
         }
     }
 }

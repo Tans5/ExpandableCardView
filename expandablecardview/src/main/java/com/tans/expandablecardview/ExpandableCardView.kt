@@ -8,6 +8,8 @@ import android.util.AttributeSet
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.AccelerateDecelerateInterpolator
+import io.reactivex.Observable
+import java.lang.RuntimeException
 import kotlin.math.abs
 
 /**
@@ -138,7 +140,7 @@ class ExpandableCardView : ViewGroup {
         return MarginLayoutParams(context, attrs)
     }
 
-    fun expand(animatorBuilder: ExpandableCardViewAnimatorBuilder? = null,
+    fun expand(animatorBuilder: ExpandableCardViewAnimatorBuilder? = ExpandableCardViewAnimatorBuilder(),
                stateListener: (state: AnimatorState) -> Unit): Boolean {
         return if (animatorState != AnimatorState.Fold) {
             false
@@ -157,7 +159,7 @@ class ExpandableCardView : ViewGroup {
         }
     }
 
-    fun fold(animatorBuilder: ExpandableCardViewAnimatorBuilder? = null,
+    fun fold(animatorBuilder: ExpandableCardViewAnimatorBuilder? = ExpandableCardViewAnimatorBuilder(),
              stateListener: (state: AnimatorState) -> Unit): Boolean {
 
         return if (animatorState != AnimatorState.Expand) {
@@ -213,8 +215,6 @@ class ExpandableCardView : ViewGroup {
         data class ExpandableCardViewAnimatorBuilder(
             val duration: Long = 500,
             val startDelay: Long = 0,
-//            val repeatCount: Int = 0,
-//            val repeatModel: Int = ValueAnimator.RESTART,
             val timeInterpolator: TimeInterpolator = AccelerateDecelerateInterpolator()
         ) {
             fun build(isExpand: Boolean = true, stateListener: (state: AnimatorState) -> Unit = {  }): Animator {
@@ -246,6 +246,34 @@ class ExpandableCardView : ViewGroup {
                 return animator
             }
         }
+
+        fun ExpandableCardView.expandWithObservable(animatorBuilder: ExpandableCardViewAnimatorBuilder? = ExpandableCardViewAnimatorBuilder())
+                : Observable<AnimatorState> {
+            val (rx, call) = callToObservable<AnimatorState> { it == AnimatorState.Expand }
+            return rx.doOnSubscribe { expand(animatorBuilder, call).let { if (!it) throw RuntimeException("Animator State is Error") } }
+        }
+
+        fun ExpandableCardView.foldWithObservable(animatorBuilder: ExpandableCardViewAnimatorBuilder? = ExpandableCardViewAnimatorBuilder())
+                : Observable<AnimatorState> {
+            val (rx, call) = callToObservable<AnimatorState> { it == AnimatorState.Fold }
+            return rx.doOnSubscribe { fold(animatorBuilder, call).let { if (!it) throw RuntimeException("Animator State is Error") } }
+        }
+
+        fun ExpandableCardView.expandOrFoldWithObservable(animatorBuilder: ExpandableCardViewAnimatorBuilder? = ExpandableCardViewAnimatorBuilder()): Observable<AnimatorState> {
+            return when (currentState()) {
+                AnimatorState.Fold -> {
+                    expandWithObservable(animatorBuilder)
+                }
+
+                AnimatorState.Expand -> {
+                    foldWithObservable(animatorBuilder)
+                }
+                else -> {
+                    Observable.error<AnimatorState>(Throwable("Animator State isn't Fold or Expand"))
+                }
+            }
+        }
+
     }
 
 }
