@@ -9,14 +9,10 @@ import android.view.ViewGroup
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import kotlinx.android.synthetic.main.activity_main.*
-import com.tans.expandablecardview.ViewSizeAnimator.Companion.expandWithObservable
-import com.tans.expandablecardview.ViewSizeAnimator.Companion.foldWithObservable
-import com.tans.expandablecardview.ViewSizeAnimator.Companion.expandOrFoldWithObserable
+import com.tans.expandablecardview.ViewSizeAnimator.Companion.expandOrFoldWithObservable
 import com.tans.expandablecardview.ExpandableCardView.Companion.expandOrFoldWithObservable
 import com.tans.expandablecardview.databinding.LayoutCardBinding
 import io.reactivex.Observable
-import io.reactivex.android.schedulers.AndroidSchedulers
-import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
 
@@ -24,38 +20,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        val expandableAdapter: ExpandableAdapter<Unit, ExpandableAdapter.ViewHolder> = object : ExpandableAdapter<Unit, ExpandableAdapter.ViewHolder>() {
-
-            override fun createViewHolder(
-                position: Int,
-                inflater: LayoutInflater,
-                parent: ViewGroup
-            ): ViewHolder {
-                val view = inflater.inflate(R.layout.layout_card, parent, false)
-                return object : ViewHolder() { override val view: View = view }
-            }
-
-            override fun bindItemViewData(position: Int, itemData: Unit, vh: ViewHolder) {
-                val view = vh.view
-                val context: Context = view.context
-                when (position % 3) {
-                    0 -> {
-                        (view as? CardView)?.setCardBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimary))
-                    }
-                    1 -> {
-                        (view as? CardView)?.setCardBackgroundColor(ContextCompat.getColor(context, R.color.colorAccent))
-                    }
-
-                    2 -> {
-                        (view as? CardView)?.setCardBackgroundColor(ContextCompat.getColor(context, R.color.colorPrimaryDark))
-                    }
-                }
-            }
-
-        }
-
-
-        val expandableAdapter2 = bindingExpandableAdapter<Unit, LayoutCardBinding>(R.layout.layout_card,
+        val expandableAdapter = bindingExpandableAdapter<Unit, LayoutCardBinding>(R.layout.layout_card,
             dataProvider =  Observable.just(List(10) { Unit }),
             bindingData = { position, data, binding ->
                 val context: Context = binding.root.context
@@ -73,11 +38,7 @@ class MainActivity : AppCompatActivity() {
                 }
             })
 
-        exd_view.setAdapter(expandableAdapter2)
-
-//        exd_view.post {
-//            expandableAdapter.notifyDataChange(List(10) { Unit })
-//        }
+        exd_view.setAdapter(expandableAdapter)
 
         var headerSizeAnimator: ViewSizeAnimator? = null
         header_tv.post {
@@ -88,7 +49,13 @@ class MainActivity : AppCompatActivity() {
         }
 
         hide_or_show_header_bt.setOnClickListener {
-            headerSizeAnimator?.expandOrFoldWithObserable(ViewSizeAnimator.Companion.AnimatorType.Height)?.subscribe()
+            // headerSizeAnimator?.expandOrFoldWithObservable(ViewSizeAnimator.Companion.AnimatorType.Height)?.subscribe()
+            val state = headerSizeAnimator?.currentState()
+            if (state is ViewSizeAnimator.Companion.AnimatorState.Expand) {
+                headerSizeAnimator?.foldWithoutAnimator(type = ViewSizeAnimator.Companion.AnimatorType.Height)
+            } else if (state is ViewSizeAnimator.Companion.AnimatorState.Fold) {
+                headerSizeAnimator?.expandWithoutAnimator()
+            }
         }
 
         expand_or_show_bt.setOnClickListener {

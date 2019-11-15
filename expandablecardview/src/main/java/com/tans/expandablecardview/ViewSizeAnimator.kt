@@ -16,9 +16,8 @@ import java.lang.RuntimeException
  */
 class ViewSizeAnimator private constructor(val view: View,
                                            val size: Size,
-                                           private val valueAnimator: ValueAnimator) {
-
-    private var state: AnimatorState = AnimatorState.Expand
+                                           private val valueAnimator: ValueAnimator,
+                                           private var state: AnimatorState = AnimatorState.Expand) {
 
     private val sizeTypeEvaluator =
         TypeEvaluator<Size> { fraction, startValue, endValue ->
@@ -29,6 +28,42 @@ class ViewSizeAnimator private constructor(val view: View,
     fun expand(type: AnimatorType, listener: (state: AnimatorState) -> Unit = {}): Boolean {
         return if (state is AnimatorState.Fold && type == (state as? AnimatorState.Fold)?.type) {
             startViewSizeAnimator(isExpand = true, type = type ,listener = listener)
+            true
+        } else {
+            false
+        }
+    }
+
+    fun expandWithoutAnimator(): Boolean {
+        return if (state is AnimatorState.Fold) {
+            view.layoutParams.width = size.width
+            view.layoutParams.height = size.height
+            view.requestLayout()
+            state = AnimatorState.Expand
+            true
+        } else {
+            false
+        }
+    }
+
+    fun foldWithoutAnimator(type: AnimatorType): Boolean {
+        return if (state == AnimatorState.Expand) {
+            when (type) {
+                AnimatorType.Height -> {
+                    view.layoutParams.width = size.width
+                    view.layoutParams.height = 0
+                }
+                AnimatorType.Width -> {
+                    view.layoutParams.width = 0
+                    view.layoutParams.height = size.height
+                }
+                AnimatorType.WidthAndHeight -> {
+                    view.layoutParams.width = 0
+                    view.layoutParams.height = 0
+                }
+            }
+            view.requestLayout()
+            state = AnimatorState.Fold(type)
             true
         } else {
             false
@@ -137,6 +172,7 @@ class ViewSizeAnimator private constructor(val view: View,
         data class Builder(val duration: Long = 500,
                            val startDelay: Long = 0,
                            val timeInterpolator: TimeInterpolator = AccelerateDecelerateInterpolator(),
+                           val defaultState: AnimatorState = AnimatorState.Expand,
                            val view: View,
                            val viewSize: Size) {
 
@@ -150,7 +186,8 @@ class ViewSizeAnimator private constructor(val view: View,
 
                 return ViewSizeAnimator(view = view,
                     size = viewSize,
-                    valueAnimator = animator)
+                    valueAnimator = animator,
+                    state = defaultState)
             }
 
         }
@@ -179,7 +216,7 @@ class ViewSizeAnimator private constructor(val view: View,
             }
         }
 
-        fun ViewSizeAnimator.expandOrFoldWithObserable(type: AnimatorType): Observable<AnimatorState> {
+        fun ViewSizeAnimator.expandOrFoldWithObservable(type: AnimatorType): Observable<AnimatorState> {
             return when (currentState()) {
                 AnimatorState.Expand -> {
                     foldWithObservable(type)
